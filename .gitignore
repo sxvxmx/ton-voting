@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+**/node_modules/
+**/dist/
+**/.turbo/
+**/*.tsbuildinfo
+
+# Go
+backend/bin/
+backend/data/
+backend/coverage.out
+
+# Contract artifacts
+contracts/build/
+contracts/.blueprint/
+contracts/temp/
+contracts/.tmp/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript emitted JS from accidental local builds
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Docker
+.caddy/

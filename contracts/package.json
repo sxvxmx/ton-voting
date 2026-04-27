@@ -1,0 +1,24 @@
+{
+  "name": "student-dao-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "NODE_OPTIONS='--require ./polyfills/set-methods.cjs' blueprint build",
+    "test": "npm run build && jest --runInBand",
+    "deploy:testnet": "NODE_OPTIONS='--require ./polyfills/set-methods.cjs' blueprint run deployStudentDao --testnet",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ton/blueprint": "^0.22.0",
+    "@ton/core": "^0.63.1"
+  },
+  "devDependencies": {
+    "@ton/sandbox": "^0.23.0",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.8",
+    "jest": "^29.7.0",
+    "ts-node": "^10.9.2",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.5.2"
+  }
+}
