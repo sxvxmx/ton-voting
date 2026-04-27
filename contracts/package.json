@@ -9,16 +9,17 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@ton/blueprint": "^0.22.0",
-    "@ton/core": "^0.63.1"
+    "@ton/blueprint": "^0.44.2",
+    "@ton/core": "^0.63.1",
+    "audit": "^0.0.6"
   },
   "devDependencies": {
-    "@ton/sandbox": "^0.23.0",
+    "@ton/sandbox": "^0.41.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.8",
     "jest": "^29.7.0",
-    "ts-node": "^10.9.2",
     "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.5.2"
   }
 }
