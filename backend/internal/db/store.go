@@ -26,8 +26,14 @@ func New(sqlitePath string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
+	db.SetMaxOpenConns(4)
+	db.SetMaxIdleConns(4)
 
 	store := &Store{db: db}
+	if err := store.initPragmas(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	if err := store.initSchema(); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -38,6 +44,22 @@ func New(sqlitePath string) (*Store, error) {
 
 func (s *Store) Close() error {
 	return s.db.Close()
+}
+
+func (s *Store) initPragmas() error {
+	pragmas := []string{
+		`PRAGMA journal_mode=WAL;`,
+		`PRAGMA synchronous=NORMAL;`,
+		`PRAGMA temp_store=MEMORY;`,
+		`PRAGMA busy_timeout=5000;`,
+	}
+
+	for _, pragma := range pragmas {
+		if _, err := s.db.Exec(pragma); err != nil {
+			return fmt.Errorf("apply sqlite pragma %q: %w", pragma, err)
+		}
+	}
+	return nil
 }
 
 func (s *Store) initSchema() error {
@@ -79,6 +101,10 @@ CREATE TABLE IF NOT EXISTS sync_cursor (
   lt TEXT NOT NULL,
   hash TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_proposals_status_updated ON proposals(status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_votes_proposal_id ON votes(proposal_id);
+CREATE INDEX IF NOT EXISTS idx_events_utime ON events(utime DESC);
 
 INSERT OR IGNORE INTO sync_cursor(id, lt, hash) VALUES(1, '', '');
 `

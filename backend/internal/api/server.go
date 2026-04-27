@@ -6,16 +6,31 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"student-dao/backend/internal/db"
 )
 
 type Server struct {
-	store *db.Store
+	store           *db.Store
+	listCacheMu     sync.RWMutex
+	listCache       map[string]cachedList
+	listCacheTTL    time.Duration
+	lastCacheWarmup time.Time
+}
+
+type cachedList struct {
+	items     []db.Proposal
+	expiresAt time.Time
 }
 
 func NewServer(store *db.Store) *Server {
-	return &Server{store: store}
+	return &Server{
+		store:        store,
+		listCache:    make(map[string]cachedList),
+		listCacheTTL: 2 * time.Second,
+	}
 }
 
 func (s *Server) Routes() http.Handler {
@@ -38,13 +53,56 @@ func (s *Server) handleListProposals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proposals, err := s.store.ListProposals(r.Context(), status)
-	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list proposals"})
-		return
+	proposals, ok := s.getCachedList(status)
+	if !ok {
+		var err error
+		proposals, err = s.store.ListProposals(r.Context(), status)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list proposals"})
+			return
+		}
+		s.setCachedList(status, proposals)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]any{"items": proposals})
+}
+
+func cacheKey(status string) string {
+	if status == "" {
+		return "all"
+	}
+	return status
+}
+
+func cloneProposals(items []db.Proposal) []db.Proposal {
+	out := make([]db.Proposal, len(items))
+	copy(out, items)
+	return out
+}
+
+func (s *Server) getCachedList(status string) ([]db.Proposal, bool) {
+	key := cacheKey(status)
+	now := time.Now()
+
+	s.listCacheMu.RLock()
+	entry, ok := s.listCache[key]
+	s.listCacheMu.RUnlock()
+	if !ok || now.After(entry.expiresAt) {
+		return nil, false
+	}
+
+	return cloneProposals(entry.items), true
+}
+
+func (s *Server) setCachedList(status string, items []db.Proposal) {
+	key := cacheKey(status)
+	s.listCacheMu.Lock()
+	s.listCache[key] = cachedList{
+		items:     cloneProposals(items),
+		expiresAt: time.Now().Add(s.listCacheTTL),
+	}
+	s.lastCacheWarmup = time.Now()
+	s.listCacheMu.Unlock()
 }
 
 func (s *Server) handleProposalSubroutes(w http.ResponseWriter, r *http.Request) {

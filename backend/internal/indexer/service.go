@@ -2,8 +2,8 @@ package indexer
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"student-dao/backend/internal/config"
@@ -48,6 +48,11 @@ func (s *Service) Run(ctx context.Context) error {
 }
 
 func (s *Service) syncOnce(ctx context.Context) error {
+	contractAddress, err := ton.NormalizeAddress(s.cfg.ContractAddress)
+	if err != nil {
+		return fmt.Errorf("normalize contract address: %w", err)
+	}
+
 	cursor, err := s.store.GetCursor(ctx)
 	if err != nil {
 		return err
@@ -66,7 +71,8 @@ func (s *Service) syncOnce(ctx context.Context) error {
 			continue
 		}
 
-		if !strings.EqualFold(tx.InMsg.Destination, s.cfg.ContractAddress) {
+		destination, err := ton.NormalizeAddress(tx.InMsg.Destination)
+		if err != nil || destination != contractAddress {
 			continue
 		}
 
@@ -96,13 +102,18 @@ func (s *Service) syncOnce(ctx context.Context) error {
 
 		switch decoded.Type {
 		case ton.EventCreate:
+			source := tx.InMsg.Source
+			if normalizedSource, err := ton.NormalizeAddress(source); err == nil {
+				source = normalizedSource
+			}
+
 			proposalID, err := s.store.NextProposalID(ctx)
 			if err != nil {
 				return err
 			}
 			err = s.store.InsertProposal(ctx, db.Proposal{
 				ID:          proposalID,
-				Creator:     tx.InMsg.Source,
+				Creator:     source,
 				Title:       decoded.Title,
 				Description: decoded.Description,
 				DeadlineTs:  int64(decoded.DeadlineTs),
@@ -117,7 +128,12 @@ func (s *Service) syncOnce(ctx context.Context) error {
 				return err
 			}
 		case ton.EventVote:
-			_, err := s.store.RecordVote(ctx, int64(decoded.ProposalID), tx.InMsg.Source, decoded.Support)
+			voter := tx.InMsg.Source
+			if normalizedVoter, err := ton.NormalizeAddress(voter); err == nil {
+				voter = normalizedVoter
+			}
+
+			_, err := s.store.RecordVote(ctx, int64(decoded.ProposalID), voter, decoded.Support)
 			if err != nil {
 				return err
 			}

@@ -17,6 +17,8 @@ ENV VITE_TON_NETWORK=$VITE_TON_NETWORK
 ENV VITE_TONCONNECT_MANIFEST_URL=$VITE_TONCONNECT_MANIFEST_URL
 
 RUN npm run build
+RUN js_file="$(ls dist/assets/index-*.js | head -n 1)" && cp "$js_file" dist/assets/app.js
+RUN css_file="$(ls dist/assets/index-*.css | head -n 1)" && cp "$css_file" dist/assets/app.css
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html

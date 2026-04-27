@@ -46,6 +46,22 @@ body {
   background: var(--accent-soft);
 }
 
+.view-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.view-switch button {
+  background: #e8f1ed;
+  color: var(--text);
+}
+
+.view-switch button.switch-active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .profile-row {
   display: flex;
   align-items: center;
@@ -190,10 +206,19 @@ button:disabled {
   color: var(--danger);
 }
 
+.tx-notice {
+  border-color: #b4dfcf;
+  background: #edf9f3;
+}
+
 @media (max-width: 720px) {
   .top-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .view-switch {
+    grid-template-columns: 1fr;
   }
 
   .grid-two {

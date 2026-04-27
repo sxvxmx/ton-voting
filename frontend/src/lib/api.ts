@@ -5,7 +5,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const client = axios.create({
   baseURL,
-  timeout: 10000,
+  timeout: 6000,
 });
 
 export async function getProposals(status?: 'active' | 'finalized'): Promise<Proposal[]> {
