@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { getProposals } from './lib/api';
 import { getTelegramUser, initTelegramWebApp } from './lib/telegram';
 import { buildCastVotePayload, buildCreateProposalPayload, buildFinalizePayload, TON_AMOUNTS } from './lib/ton';
-import type { Proposal } from './types';
+import type { Proposal, TelegramUser } from './types';
 import { ProfileCard } from './components/ProfileCard';
 import { ProposalForm } from './components/ProposalForm';
 import { ProposalList } from './components/ProposalList';
@@ -13,16 +13,26 @@ const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 export default function App() {
   const walletAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
 
   const [activeProposals, setActiveProposals] = useState<Proposal[]>([]);
   const [finalizedProposals, setFinalizedProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const telegramUser = useMemo(() => getTelegramUser(), []);
-
   useEffect(() => {
     initTelegramWebApp();
+
+    const syncUser = () => {
+      setTelegramUser(getTelegramUser());
+    };
+
+    syncUser();
+    const retryTimer = window.setTimeout(syncUser, 600);
+
+    return () => {
+      window.clearTimeout(retryTimer);
+    };
   }, []);
 
   async function reloadProposals(): Promise<void> {
